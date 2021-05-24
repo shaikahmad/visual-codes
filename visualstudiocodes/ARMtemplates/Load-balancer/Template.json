@@ -1,0 +1,417 @@
+
+
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "storageaccountname": {
+           "type": "string",
+           "metadata": {
+                "description": "Name of the storage account"
+            }
+        },
+    "virtualnetworkname": {
+       "type": "string",
+       "metadata": {
+            "description": "Name of the virtual network"
+        }
+    },
+    "subnet-1": {
+       "type": "string",
+       "metadata": {
+            "description": "Name of the subnet1"
+        }
+    },
+    "subnet-2": {
+       "type": "string",
+       "metadata": {
+            "description": "Name of the subnet2"
+        }
+    },
+    "publicip": {
+       "type": "string",
+       "metadata": {
+            "description": "Name of the public ip"
+        }
+    },
+    "VM-1": {
+       "type": "string",
+       "metadata": {
+            "description": "Name of the VM"
+        }
+    },
+    "adminuser": {
+       "type": "string",
+       "metadata": {
+            "description": "Name of the admin"
+        }
+    },
+    "adminpassword": {
+       "type": "string",
+       "metadata": {
+            "description": "adminpasswordd"
+        }
+    },
+    "Publicip-02": {
+       "type": "string",
+       "metadata": {
+            "description": "name of ipaddress"
+        }
+    }
+    },
+    "functions": [],
+    "variables": {
+        "Vnetipaddress": ["10.0.0.0/16"],
+        "subnet-1ipaddress": "10.0.0.0/24",
+        "subnet-2ipaddress": "10.0.1.0/24",
+        "network-interface-name": "matrix-eastus-dev-nic-01",
+        "Load-balancer-name" : "loadbalancer",
+        "NSG name" : "NSG",
+        "Backendpool-name" : "backendpool-01",
+        "VM-extesions" : "VM-ext-01",
+        "lbSkuName" : "Standard",
+        "frontend-name" : "frontend-01",
+        "frontend-outbond" : "frontend-outbond-01",
+        "backend-name" : "backend-01",
+        "backend-outbond" : "backend-outbond-01",
+        "lbProbeName": "loadBalancerHealthProbe"
+
+            },
+    "resources": [
+        {
+            "name": "[toLower(parameters('storageaccountname'))]",
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2015-06-15",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "displayName": "azstgapril0123456789",
+                "created" : "Ahmad",
+                "costcenter" : "1000",
+                "department" : "IT"
+            },
+            "properties": {
+                "accountType": "Standard_GRS"
+            }
+        },
+        { 
+            "name": "[parameters('virtualnetworkname')]",
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2018-08-01",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "displayName": "[parameters('virtualnetworkname')]",
+                 "created" : "Ahmad",
+                "costcenter" : "1000",
+                "department" : "IT"
+                
+            },
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": "[variables('Vnetipaddress')]"
+                },
+                "subnets": [
+                    {
+                        "name": "[parameters('subnet-1')]",
+                        "properties": {
+                            "addressPrefix": "[variables('subnet-1ipaddress')]"
+                        }
+                    },   
+                    {
+                        "name": "[parameters('subnet-2')]",
+                        "properties": {
+                            "addressPrefix": "[variables('subnet-2ipaddress')]"
+                        }
+                    }
+                ]
+            }
+        },
+       
+        {
+            "name": "[parameters('publicip')]",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2018-08-01",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "displayName": "[parameters('publicip')]",
+                "created" : "Ahmad",
+                "costcenter" : "1000",
+                "department" : "IT"
+                
+            },
+            "properties": {
+                "publicIPAllocationMethod": "static",
+                "dnsSettings": {
+                    "domainNameLabel": "[toLower('azmay2021pubipdomainname')]"
+                }
+            }
+        },
+       
+        {
+            "name": "[variables('network-interface-name')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2018-08-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses',parameters('publicip'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualnetworkname'))]"
+            ],
+            "tags": {
+                "displayName": "[variables('network-interface-name')]",
+                "created" : "Ahmad",
+                "costcenter" : "1000",
+                "department" : "IT"
+            },
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipConfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses',parameters('publicip'))]"
+                            },
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualnetworkname'), parameters('subnet-1'))]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "[parameters('VM-1')]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2017-03-30",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', toLower(parameters('storageaccountname')))]",
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('network-interface-name'))]"
+            ],
+            "tags": {
+                "displayName": "[parameters('VM-1')]",
+                "created" : "Ahmad",
+                "costcenter" : "1000",
+                "department" : "IT"
+            },
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "Standard_Ds1_v2"
+                },
+                "osProfile": {
+                    "computerName": "webaap2021",
+                    "adminUsername": "[parameters('adminuser')]",
+                    "adminPassword": "[parameters('adminpassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "MicrosoftWindowsServer",
+                        "offer": "WindowsServer",
+                        "sku": "2016-Datacenter",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "windowsVM1OSDisk",
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('network-interface-name'))]"
+                        }
+                    ]
+                }
+    
+            }
+           
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2020-06-01",
+            "name": "[concat(variables('network-interface-name'),'-vm', copyIndex(1), '-networkInterface')]",
+            "location": "[resourceGroup().location]",
+            "copy": {
+                "name": "networkInterfaceCopy",
+                "count": 3
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualnetworkname'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualnetworkname'), parameters('subnet-1'))]",
+                "[resourceId('Microsoft.Network/loadBalancers', variables('Load-balancer-name'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('NSG name'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualnetworkname'), parameters('subnet-1'))]"
+                            },
+                            "loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', variables('Load-balancer-name'), variables('Backendpool-name'))]"
+                                },
+                                {
+                                    "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', variables('Load-balancer-name'), variables('Backendpool-name'))]"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('NSG name'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion": "2020-06-01",
+            "name": "[concat(variables('VM-extesions'),'-vm', copyIndex(1), '/', 'InstallWebServer')]",
+            "location": "[resourceGroup().location]",
+            "copy": {
+                "name": "extensionCopy",
+                "count": 3
+            },
+            "dependsOn": [
+                "vmCopy"
+            ],
+            "properties": {
+                "publisher": "Microsoft.Compute",
+                "type": "CustomScriptExtension",
+                "typeHandlerVersion": "1.7",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "commandToExecute": "powershell.exe Install-WindowsFeature -name Web-Server -IncludeManagementTools && powershell.exe remove-item 'C:\\inetpub\\wwwroot\\iisstart.htm' && powershell.exe Add-Content -Path 'C:\\inetpub\\wwwroot\\iisstart.htm' -Value $('Hello World from ' + $env:computername)"
+                }
+            }
+        },
+       
+     
+        {
+            "type": "Microsoft.Network/loadBalancers",
+            "apiVersion": "2020-06-01",
+            "name": "[variables('Load-balancer-name')]",
+            "location": "[resourceGroup().location]",
+            "sku": {
+                "name": "[variables('lbSkuName')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicip'))]",
+                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicip'))]"
+            ],
+            "properties": {
+                "frontendIPConfigurations": [
+                    {
+                        "name": "[variables('frontend-name')]",
+                        "properties": {
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicip') )]"
+                            }
+                        }
+                    },
+                    {
+                        "name": "[variables('frontend-outbond')]",
+                        "properties": {
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses',parameters('publicip'))]"
+                            }
+                        }
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "[variables('backend-name')]"
+                    },
+                    {
+                        "name": "[variables('frontend-outbond')]"
+                    }
+                ],
+                "loadBalancingRules": [
+                    {
+                        "name": "myHTTPRule",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', variables('Load-balancer-name'), variables('frontend-name'))]"
+                            },
+                            "backendAddressPool": {
+                                "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', variables('Load-balancer-name'), variables('backend-name'))]"
+                            },
+                            "frontendPort": 80,
+                            "backendPort": 80,
+                            "enableFloatingIP": false,
+                           "idleTimeoutInMinutes": 15,
+                            "protocol": "Tcp",
+                            "enableTcpReset": true,
+                            "loadDistribution": "Default",
+                            "disableOutboundSnat": true,
+                            "probe": {
+                                "id": "[resourceId('Microsoft.Network/loadBalancers/probes', variables('Load-balancer-name'), variables('lbProbeName'))]"
+                            }
+                        }
+                    }
+                ],
+                "probes": [
+                    {
+                        "name": "[variables('lbProbeName')]",
+                        "properties": {
+                            "protocol": "Http",
+                            "port": 80,
+                            "requestPath": "/",
+                            "intervalInSeconds": 5,
+                            "numberOfProbes": 2
+                        }
+                    }
+                ],
+                "outboundRules": [
+                    {
+                        "name": "myOutboundRule",
+                        "properties": {
+                            "allocatedOutboundPorts": 10000,
+                            "protocol": "All",
+                            "enableTcpReset": false,
+                            "idleTimeoutInMinutes": 15,
+                            "backendAddressPool": {
+                                "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', variables('Load-balancer-name'), variables('backend-outbond'))]"
+                            },
+                            "frontendIPConfigurations": [
+                                {
+                                    "id": "[resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', variables('Load-balancer-name'), variables('frontend-outbond'))]"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+       
+      
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2020-06-01",
+            "name": "[variables('NSG name')]",
+           "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "AllowHTTPInbound",
+                        "properties": {
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "80",
+                            "sourceAddressPrefix": "Internet",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 100,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            }
+        }
+   
+    ]
+
+}
